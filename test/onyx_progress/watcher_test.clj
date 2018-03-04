@@ -65,7 +65,7 @@
                                 (recur v)))))]
         (is
           (= {:task :onyx-progress.watcher-test/input :progress {:in 1000, :out 1000}}
-             last-evt)))
+             (dissoc last-evt :job))))
       (finally
         (component/stop watcher)
         (onyx.api/shutdown-env env)))))

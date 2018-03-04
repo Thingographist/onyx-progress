@@ -40,7 +40,8 @@
                                   task-id (keyword (str (.substring task-ns 1) "/" task))]
                               (when (> version (get @versions job-id -1))
                                 (swap! versions assoc job-id version)
-                                (>!! evt-ch {:task     task-id
+                                (>!! evt-ch {:job      job-id
+                                             :task     task-id
                                              :progress (zookeeper-decompress body)})))))
                         {:root (str *onyx-job-progress-path* "/" (:onyx/tenancy-id client-config))})]
           {:conn        conn
