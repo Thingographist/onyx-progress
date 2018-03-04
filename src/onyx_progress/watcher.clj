@@ -7,14 +7,8 @@
             [com.stuartsierra.component :as component]
             [onyx-progress.lifecycle :refer [*onyx-job-progress-path*]]
             [zoo-routing.core :refer [start-watcher]]
-            [zoo-routing.routes :as routes]))
-
-(defn update-progress [state version job-id task value]
-  (if (> (get-in state [:versions job-id] -1) version)
-    state
-    (-> state
-        (assoc-in [:versions job-id] version)
-        (assoc-in [:jobs job-id task] value))))
+            [zoo-routing.routes :as routes]
+            [clojure.core.cache :as cache]))
 
 (defprotocol ISubscribe
   (subscribe [this ch] "subscribe chan"))
@@ -25,7 +19,7 @@
     (merge
       this
       (when-not (:started? this)
-        (let [versions (atom {})
+        (let [versions (atom (cache/ttl-cache-factory {} :ttl (* 1000 60 5)))
               evt-ch (chan (sliding-buffer 1000))
               mult-evt-ch (mult evt-ch)
               conn (zk/connect (:zookeeper/address client-config))
@@ -38,11 +32,10 @@
                                   {:keys [version]} stat
                                   {:keys [job-id task-ns task]} route-params
                                   task-id (keyword (str (.substring task-ns 1) "/" task))]
-                              (when (> version (get @versions job-id -1))
-                                (swap! versions assoc job-id version)
-                                (>!! evt-ch {:job      job-id
-                                             :task     task-id
-                                             :progress (zookeeper-decompress body)})))))
+                              (when (> version (get-in @versions [job-id task-id] -1))
+                                (let [progress (zookeeper-decompress body)]
+                                  (swap! versions assoc-in [job-id task-id] version)
+                                  (>!! evt-ch {:job job-id :task task-id :progress progress}))))))
                         {:root (str *onyx-job-progress-path* "/" (:onyx/tenancy-id client-config))})]
           {:conn        conn
            :watcher     watcher

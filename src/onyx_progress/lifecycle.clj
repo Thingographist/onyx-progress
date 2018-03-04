@@ -9,31 +9,27 @@
                                  onyx.core/tenancy-id
                                  onyx.core/task-id
                                  onyx.core/log
-                                 onyx-progress.lifecycle/conn
-                                 onyx-progress.lifecycle/conn-clients]}
+                                 onyx-progress.lifecycle/conn]}
                          lifecycle]
   (if (nil? conn)
     (let [conn (zk/connect (-> log :config :zookeeper/address))
           path (str *onyx-job-progress-path* "/" tenancy-id "/" job-id "/" task-id)
           progress-measures (zookeeper-compress {:in 0 :out 0})]
       (zk/create-all conn path :data progress-measures :persistent? true)
-      {::node         path
-       ::conn         conn
-       ::conn-clients 1})
-    {::conn-clients (inc conn-clients)}))
+      {::node path
+       ::conn conn})
+    {}))
 
 (defn after-task-stop [{:keys [onyx-progress.lifecycle/conn
-                               onyx-progress.lifecycle/conn-clients
                                onyx-progress.lifecycle/node]}
                        lifecycle]
-  (if (and (some? conn)
-           (= conn-clients 1))
+  (if (some? conn)
     (do
       (zk/delete conn node)
       (zk/close conn)
       {::node nil
        ::conn nil})
-    {::conn-clients (dec conn-clients)}))
+    {}))
 
 (defn update-progress [zk-progress-key]
   (fn [{:keys [onyx-progress.lifecycle/conn

@@ -1,4 +1,4 @@
-(defproject onyx-progress "0.1.3"
+(defproject onyx-progress "0.1.4"
   :description "Progress monitoring through Zookeeper"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,9 @@
                                                               org.slf4j/slf4j-api]]
                  [org.apache.curator/curator-framework "4.0.0" :exclusions [org.slf4j/slf4j-api
                                                                             org.apache.zookeeper/zookeeper]]
+
                  [org.slf4j/slf4j-api "1.7.25"]
+                 [org.clojure/core.cache "0.7.1"]
                  [zoo-routing "0.1.3" :exclusions [log4j
                                                    org.clojure/tools.reader
                                                    org.apache.zookeeper/zookeeper
