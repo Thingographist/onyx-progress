@@ -18,7 +18,7 @@
 (deftest test-watcher
   "simple sting watcher"
   (let [tenancy-id "test-cluster"
-        zookeeper-address "127.0.0.1:2188"
+        zookeeper-address "127.0.0.1:2187"
         config {:onyx/tenancy-id                                tenancy-id
                 :zookeeper/address                              zookeeper-address
                 :onyx.messaging/bind-addr                       "localhost"
@@ -47,7 +47,7 @@
         env (onyx.api/start-env {:zookeeper/address     zookeeper-address
                                  :onyx/tenancy-id       tenancy-id
                                  :zookeeper/server?     true
-                                 :zookeeper.server/port 2188})
+                                 :zookeeper.server/port 2187})
         ch (chan)
         watcher (component/start (make-watcher config))]
     (subscribe watcher ch)
@@ -57,10 +57,15 @@
                     :workflow       workflow
                     :lifecycles     lifecycles
                     :task-scheduler :onyx.task-scheduler/balanced})
-      (go
+      (let [timeout-ch (async/timeout 3000)
+            last-evt (<!! (go-loop [vv nil]
+                            (let [[v _] (async/alts!! [ch timeout-ch])]
+                              (if (nil? v)
+                                vv
+                                (recur v)))))]
         (is
           (= {:task :onyx-progress.watcher-test/input :progress {:in 1000, :out 1000}}
-             (last (<!! (async/into [] ch))))))
+             last-evt)))
       (finally
         (component/stop watcher)
         (onyx.api/shutdown-env env)))))
